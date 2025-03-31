@@ -1,0 +1,289 @@
+<template>
+  Link List
+
+  <el-row style="margin-top: 20px;">
+    <el-button type="primary" @click="handleClickCreateLink">Create Link</el-button>
+    <el-button type="primary" @click="handleClickRenderAll">Render All</el-button>
+  </el-row>
+
+  <el-table :data="tableData" stripe :fit="true">
+    <el-table-column prop="id" label="Link ID"></el-table-column>
+    <el-table-column prop="srcNodeId" label="SourceNode"></el-table-column>
+    <el-table-column prop="dstNodeId" label="DestinationNode"></el-table-column>
+    <el-table-column prop="connectIP" label="Connect IP"></el-table-column>
+    <el-table-column prop="dstListenPort" label="Connect Port"></el-table-column>
+    <el-table-column prop="enabled" label="Enabled"></el-table-column>
+    <el-table-column prop="ready" label="Ready"></el-table-column>
+    <el-table-column label="Create Time" width="180">
+      <template #default="{ row }">
+        {{ formatLocalTime(row.createTime) }}
+      </template>
+    </el-table-column>
+    <el-table-column label="Last Sync Time" width="180">
+      <template #default="{ row }">
+        {{ formatLocalTime(row.lastSync) }}
+      </template>
+    </el-table-column>
+    <el-table-column label="Action">
+      <template #default="{ row }">
+        <el-button type="primary" @click="handleClickEditConfig(row.id)">Edit Config</el-button>
+        <el-button type="danger" disabled>Delete</el-button>
+      </template>
+    </el-table-column>
+  </el-table>
+
+  <el-dialog v-model="isDialogVisible" title="Create Link">
+    <el-form :model="formValues" ref="ruleFormRef" :rules="formRules" status-icon>
+      <el-form-item label="Source Node ID" prop="fromNodeId">
+        <el-select v-model="formValues.fromNodeId" placeholder="Select Source Node" :rules="formRules.fromNodeId">
+          <el-option v-for="item in nodeListDropdown" :key="item.id" :label="item.nodeName + ' (' + item.id + ')'"
+            :value="item.id">
+          </el-option>
+        </el-select>
+      </el-form-item>
+      <el-form-item label="Destination Node ID" prop="toNodeId">
+        <el-select v-model="formValues.toNodeId" placeholder="Select Destination Node" :rules="formRules.toNodeId">
+          <el-option v-for="item in nodeListDropdown" :key="item.id" :label="item.nodeName + ' (' + item.id + ')'"
+            :value="item.id">
+          </el-option>
+        </el-select>
+      </el-form-item>
+      <el-form-item label="Connect IP (Optional)" prop="connectIp">
+        <el-input placeholder="Enter Connect IP" v-model="formValues.connectIp"></el-input>
+      </el-form-item>
+      <el-form-item label="Connect Port (Optional)" prop="connectPort">
+        <el-input-number v-model="formValues.connectPort"></el-input-number>
+      </el-form-item>
+      <el-row>
+        <el-text>Extra Configs</el-text>
+        <VAceEditor v-model:value="formValues.extra" lang="json" theme="chrome"
+          style="height: 20vh; width: 100%; margin-top: 5px" :options="{
+            wrap: true,
+            indentedSoftWrap: true,
+          }" />
+      </el-row>
+      <el-form-item style="margin-top: 10px;">
+        <el-button type="primary" @click="handleSubmitNewLink(ruleFormRef)">Create</el-button>
+      </el-form-item>
+    </el-form>
+  </el-dialog>
+
+  <el-dialog v-model="isEditDialogVisible" :title="editDialogTitle">
+    <el-form :model="editFormValues" ref="editFormRef" :rules="formRules" status-icon>
+      <el-form-item label="Source Node ID" prop="fromNodeId">
+        <el-select v-model="editFormValues.fromNodeId" placeholder="Select Source Node" :rules="formRules.fromNodeId"
+          disabled>
+          <el-option v-for="item in nodeListDropdown" :key="item.id" :label="item.nodeName + ' (' + item.id + ')'"
+            :value="item.id">
+          </el-option>
+        </el-select>
+      </el-form-item>
+      <el-form-item label="Destination Node ID" prop="toNodeId">
+        <el-select v-model="editFormValues.toNodeId" placeholder="Select Destination Node" :rules="formRules.toNodeId"
+          disabled>
+          <el-option v-for="item in nodeListDropdown" :key="item.id" :label="item.nodeName + ' (' + item.id + ')'"
+            :value="item.id">
+          </el-option>
+        </el-select>
+      </el-form-item>
+      <el-form-item label="Connect IP (Optional)" prop="connectIp">
+        <el-input placeholder="Enter Connect IP" v-model="editFormValues.connectIp"></el-input>
+      </el-form-item>
+      <el-form-item label="Connect Port (Optional)" prop="connectPort">
+        <el-input-number v-model="editFormValues.connectPort"></el-input-number>
+      </el-form-item>
+      <el-row>
+        <el-text>Extra Configs</el-text>
+        <VAceEditor v-model:value="editFormValues.extra" lang="json" theme="chrome"
+          style="height: 20vh; width: 100%; margin-top: 5px" :options="{
+            wrap: true,
+            indentedSoftWrap: true,
+          }" />
+      </el-row>
+      <el-form-item style="margin-top: 10px;">
+        <el-button type="primary" @click="handleSubmitEditLink(editFormRef)">Update</el-button>
+      </el-form-item>
+    </el-form>
+  </el-dialog>
+
+</template>
+
+<script lang="ts" setup>
+import { onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
+import * as api from '@/api';
+import { ElMessage, ElNotification, type FormInstance } from 'element-plus';
+import { formatLocalTime } from '@/utils';
+import { VAceEditor } from 'vue3-ace-editor';
+import "ace-builds/src-noconflict/mode-json";
+import "ace-builds/src-noconflict/theme-chrome";
+import extSearchboxUrl from 'ace-builds/src-noconflict/ext-searchbox?url';
+import ace from 'ace-builds';
+ace.config.setModuleUrl('ace/ext/searchbox', extSearchboxUrl);
+
+const route = useRoute();
+const tableData = ref<api.LinkTemplateInfo[]>([]);
+const isDialogVisible = ref(false);
+const nodeListDropdown = ref<api.NodeInfo[]>([]);
+const ruleFormRef = ref<FormInstance>()
+
+interface FormType {
+  fromNodeId: number;
+  toNodeId: number;
+  connectIp: string;
+  connectPort: number;
+  extra: string;
+}
+
+const formValues = ref<FormType>({
+  fromNodeId: 0,
+  toNodeId: 0,
+  connectIp: '',
+  connectPort: 0,
+  extra: '{}',
+});
+
+const isEditDialogVisible = ref(false);
+const editFormRef = ref<FormInstance>()
+const editDialogTitle = ref('Edit Link');
+const editTemplateId = ref(0);
+const editFormValues = ref<FormType>({
+  fromNodeId: 0,
+  toNodeId: 0,
+  connectIp: '',
+  connectPort: 0,
+  extra: '{}',
+});
+
+const formRules = ref({
+  fromNodeId: [
+    { required: true, message: 'Please enter the source node ID', trigger: 'blur' },
+    { type: 'number', min: 1, message: 'Node ID must be greater than 0', trigger: 'blur' },
+  ],
+  toNodeId: [
+    { required: true, message: 'Please enter the destination node ID', trigger: 'blur' },
+    { type: 'number', min: 1, message: 'Node ID must be greater than 0', trigger: 'blur' },
+  ],
+  connectIp: [
+    { required: false, message: 'Please enter the connect IP', trigger: 'blur' },
+    { type: 'string', min: 7, max: 15, message: 'IP length should be between 7 and 15', trigger: 'blur' },
+  ],
+});
+
+async function handleClickCreateLink() {
+  const clusterId = parseInt(route.query.clusterId as string, 10) || 0;
+  nodeListDropdown.value = await api.fetchNodeList(clusterId);
+
+  formValues.value = {
+    fromNodeId: 0,
+    toNodeId: 0,
+    connectIp: '',
+    connectPort: 0,
+    extra: JSON.stringify({
+      "ospf": {
+        "cost": 10,
+        "ping": false,
+        "offset": 0,
+      }
+    }, null, 2),
+  };
+
+  isDialogVisible.value = true;
+}
+
+async function handleSubmitNewLink(ruleFormRef: FormInstance | undefined) {
+  if (!ruleFormRef) {
+    return;
+  }
+  console.log(ruleFormRef);
+  const isFormValid = await ruleFormRef.validate();
+  if (!isFormValid) {
+    ElNotification({
+      title: 'Error',
+      message: 'Please fill in the form correctly',
+      type: 'error',
+    });
+    return;
+  }
+
+  const clusterId = parseInt(route.query.clusterId as string, 10) || 0;
+
+  const res = await api.createLinkTemplate(clusterId, formValues.value.fromNodeId, formValues.value.toNodeId, formValues.value.connectIp, formValues.value.connectPort, formValues.value.extra);
+  ElMessage({
+    message: res.message,
+    type: 'success',
+  });
+
+  isDialogVisible.value = false;
+  await loadClusterLinks();
+}
+
+async function handleClickRenderAll() {
+  const res = await api.refreshAllLinks();
+  ElMessage({
+    message: res.message,
+    type: 'success',
+  });
+}
+
+async function loadClusterLinks() {
+  const clusterId = parseInt(route.query.clusterId as string, 10) || 0;
+  const res = await api.fetchLinkTemplates(clusterId);
+  tableData.value = res;
+}
+
+async function handleClickEditConfig(linkId: number) {
+  const data = await api.fetchLinkTemplate(linkId);
+  editTemplateId.value = data.id;
+  editFormValues.value = {
+    fromNodeId: data.srcNodeId,
+    toNodeId: data.dstNodeId,
+    connectIp: data.connectIP,
+    connectPort: data.dstListenPort,
+    extra: data.extra,
+  }
+  editDialogTitle.value = `Edit Link ${linkId}`;
+
+  // try to prettify the extra config
+  try {
+    const parsedExtra = JSON.parse(data.extra);
+    editFormValues.value.extra = JSON.stringify(parsedExtra, null, 2);
+  } catch (e) {
+    console.error('Failed to parse extra config:', e);
+  }
+
+  const clusterId = parseInt(route.query.clusterId as string, 10) || 0;
+  nodeListDropdown.value = await api.fetchNodeList(clusterId);
+
+  isEditDialogVisible.value = true;
+}
+
+async function handleSubmitEditLink(editFormRef: FormInstance | undefined) {
+  if (!editFormRef) {
+    return;
+  }
+  const isFormValid = await editFormRef.validate();
+  if (!isFormValid) {
+    ElNotification({
+      title: 'Error',
+      message: 'Please fill in the form correctly',
+      type: 'error',
+    });
+    return;
+  }
+
+  const res = await api.updateLinkTemplate(editTemplateId.value, editFormValues.value.connectIp, editFormValues.value.connectPort, editFormValues.value.extra);
+  ElMessage({
+    message: res.message,
+    type: 'success',
+  });
+
+  isEditDialogVisible.value = false;
+  await loadClusterLinks();
+}
+
+onMounted(async () => {
+  await loadClusterLinks();
+});
+
+</script>
