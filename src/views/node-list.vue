@@ -70,7 +70,12 @@ import ace from 'ace-builds';
 ace.config.setModuleUrl('ace/ext/searchbox', extSearchboxUrl);
 
 const route = useRoute();
-const clusterInfo = ref<api.ClusterInfo>({})
+const clusterInfo = ref<api.ClusterInfo>({
+  id: 0,
+  name: '',
+  createTime: new Date(),
+  updateTime: new Date(),
+})
 const userClusterRole = ref(0);
 
 const tableData = ref<api.NodeInfo[]>([]);
