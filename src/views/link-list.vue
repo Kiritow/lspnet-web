@@ -8,8 +8,16 @@
 
   <el-table :data="tableData" stripe :fit="true">
     <el-table-column prop="id" label="Link ID"></el-table-column>
-    <el-table-column prop="srcNodeId" label="SourceNode"></el-table-column>
-    <el-table-column prop="dstNodeId" label="DestinationNode"></el-table-column>
+    <el-table-column label="SourceNode">
+      <template #default="{ row }">
+        {{ nodeInfoMap.get(row.srcNodeId)?.nodeName ?? "<Node>" }} ({{ row.srcNodeId }})
+      </template>
+    </el-table-column>
+    <el-table-column label="DestinationNode">
+      <template #default="{ row }">
+        {{ nodeInfoMap.get(row.dstNodeId)?.nodeName ?? "<Node>" }} ({{ row.dstNodeId }})
+      </template>
+    </el-table-column>
     <el-table-column prop="connectIP" label="Connect IP"></el-table-column>
     <el-table-column prop="dstListenPort" label="Connect Port"></el-table-column>
     <el-table-column prop="enabled" label="Enabled"></el-table-column>
@@ -123,6 +131,7 @@ ace.config.setModuleUrl('ace/ext/searchbox', extSearchboxUrl);
 
 const route = useRoute();
 const tableData = ref<api.LinkTemplateInfo[]>([]);
+const nodeInfoMap = ref<Map<number, api.NodeInfo>>(new Map());
 const isDialogVisible = ref(false);
 const nodeListDropdown = ref<api.NodeInfo[]>([]);
 const ruleFormRef = ref<FormInstance>()
@@ -229,6 +238,17 @@ async function handleClickRenderAll() {
 async function loadClusterLinks() {
   const clusterId = parseInt(route.query.clusterId as string, 10) || 0;
   const res = await api.fetchLinkTemplates(clusterId);
+
+  // load node names
+  const allNodeIds = new Set<number>();
+  res.forEach(item => {
+    allNodeIds.add(item.srcNodeId);
+    allNodeIds.add(item.dstNodeId);
+  });
+
+  const allNodeInfo = await Promise.all(Array.from(allNodeIds).map(id => api.fetchNodeInfo(id)));
+  nodeInfoMap.value = new Map(allNodeInfo.map(node => [node.id, node]));
+
   tableData.value = res;
 }
 
