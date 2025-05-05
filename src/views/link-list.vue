@@ -180,7 +180,7 @@ const formRules = ref({
 });
 
 function validateIPorHost(rule: unknown, value: unknown, callback: (err?: unknown) => void) {
-  if (!(value instanceof String)) {
+  if (typeof value !== 'string') {
     console.error(`value is not a string. type: ${typeof value} value: ${value}`);
     callback(new Error('value must be a string'));
     return;
