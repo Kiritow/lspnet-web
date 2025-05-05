@@ -175,9 +175,27 @@ const formRules = ref({
   ],
   connectIp: [
     { required: false, message: 'Please enter the connect IP', trigger: 'blur' },
-    { type: 'string', min: 7, max: 15, message: 'IP length should be between 7 and 15', trigger: 'blur' },
+    { type: 'string', validator: validateIPorHost, message: 'Invalid IP or Host', trigger: 'blur' },
   ],
 });
+
+function validateIPorHost(rule: unknown, value: unknown, callback: (err?: unknown) => void) {
+  if (!(value instanceof String)) {
+    callback(new Error('value must be a string'));
+    return;
+  }
+
+  if (value.length < 1) {
+    callback(new Error('value must not be empty'));
+    return;
+  }
+
+  if ([...value].every(c => (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c === '.' || c === '-' || c === ':')) {
+    callback();
+  } else {
+    callback(new Error('Invalid IP or Host. contains invalid characters'));
+  }
+}
 
 async function handleClickCreateLink() {
   const clusterId = parseInt(route.query.clusterId as string, 10) || 0;
