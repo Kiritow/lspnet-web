@@ -181,11 +181,13 @@ const formRules = ref({
 
 function validateIPorHost(rule: unknown, value: unknown, callback: (err?: unknown) => void) {
   if (!(value instanceof String)) {
+    console.error(`value is not a string. type: ${typeof value} value: ${value}`);
     callback(new Error('value must be a string'));
     return;
   }
 
   if (value.length < 1) {
+    console.error(`value is empty. type: ${typeof value} value: ${value}`);
     callback(new Error('value must not be empty'));
     return;
   }
@@ -193,6 +195,7 @@ function validateIPorHost(rule: unknown, value: unknown, callback: (err?: unknow
   if ([...value].every(c => (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c === '.' || c === '-' || c === ':')) {
     callback();
   } else {
+    console.error(`value contains invalid characters. type: ${typeof value} value: ${value}`);
     callback(new Error('Invalid IP or Host. contains invalid characters'));
   }
 }
