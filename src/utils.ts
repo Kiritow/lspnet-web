@@ -33,10 +33,10 @@ export async function justGet(url: string, params?: Record<string, string>) {
       throw new Error(`request failed with [${res.status}] ${data}`)
     }
 
-    if (res.headers.get('Content-Type') === 'application/json') {
-      return await res.json();
-    } else {
+    if (res.headers.get('content-type') === 'image/png') {
       return await res.blob();
+    } else {
+      return await res.json();
     }
   } catch (e) {
     console.log(e)
