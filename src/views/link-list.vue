@@ -4,6 +4,7 @@
   <el-row style="margin-top: 20px;">
     <el-button type="primary" @click="handleClickCreateLink">Create Link</el-button>
     <el-button type="primary" @click="handleClickRenderAll">Render All</el-button>
+    <el-button type="primary" @click="handleClickDisplayTopology">Topology</el-button>
   </el-row>
 
   <el-table :data="tableData" stripe :fit="true">
@@ -114,6 +115,11 @@
     </el-form>
   </el-dialog>
 
+  <el-dialog v-model="isTopologyVisible" title="Cluster Topology">
+    <div id="topology-container" style="width: 100%; height: 80vh; overflow: auto;">
+    </div>
+  </el-dialog>
+
 </template>
 
 <script lang="ts" setup>
@@ -178,6 +184,8 @@ const formRules = ref({
     { type: 'string', validator: validateIPorHost, message: 'Invalid IP or Host', trigger: 'blur' },
   ],
 });
+
+const isTopologyVisible = ref(false);
 
 function validateIPorHost(rule: unknown, value: unknown, callback: (err?: unknown) => void) {
   if (typeof value !== 'string') {
@@ -321,6 +329,13 @@ async function handleSubmitEditLink(editFormRef: FormInstance | undefined) {
 
   isEditDialogVisible.value = false;
   await loadClusterLinks();
+}
+
+async function handleClickDisplayTopology() {
+  const clusterId = parseInt(route.query.clusterId as string, 10) || 0;
+  const svgContent = await api.loadClusterTopology(clusterId);
+  document.getElementById('topology-container')!.innerHTML = svgContent;
+  isTopologyVisible.value = true;
 }
 
 onMounted(async () => {

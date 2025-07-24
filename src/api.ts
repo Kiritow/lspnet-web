@@ -130,3 +130,10 @@ export async function updateLinkTemplate(
   })
   return z.object({ message: z.string() }).parse(res)
 }
+
+export async function loadClusterTopology(clusterId: number) {
+  const res = await justGet('/api/admin/cluster/topology', { clusterId: `${clusterId}` })
+  return z.object({
+    topology: z.string(),
+  }).parse(res).topology;
+}
