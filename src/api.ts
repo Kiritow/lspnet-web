@@ -132,8 +132,5 @@ export async function updateLinkTemplate(
 }
 
 export async function loadClusterTopology(clusterId: number) {
-  const res = await justGet('/api/admin/cluster/topology', { id: `${clusterId}` })
-  return z.object({
-    topology: z.string(),
-  }).parse(res).topology;
+  return await justGet('/api/admin/cluster/topology', { id: `${clusterId}` })
 }

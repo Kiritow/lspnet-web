@@ -33,7 +33,11 @@ export async function justGet(url: string, params?: Record<string, string>) {
       throw new Error(`request failed with [${res.status}] ${data}`)
     }
 
-    return await res.json()
+    if (res.headers.get('Content-Type') === 'application/json') {
+      return await res.json();
+    } else {
+      return await res.blob();
+    }
   } catch (e) {
     console.log(e)
     if (e instanceof ErrorAsCardMessage) {

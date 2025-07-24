@@ -116,8 +116,7 @@
   </el-dialog>
 
   <el-dialog v-model="isTopologyVisible" title="Cluster Topology" width="80%">
-    <div id="topology-container" style="width: 100%; height: 80vh; overflow: auto;">
-    </div>
+    <img :src="topologyImageUrl" alt="Cluster Topology" style="width: 100%; height: auto;">
   </el-dialog>
 
 </template>
@@ -186,6 +185,7 @@ const formRules = ref({
 });
 
 const isTopologyVisible = ref(false);
+const topologyImageUrl = ref('');
 
 function validateIPorHost(rule: unknown, value: unknown, callback: (err?: unknown) => void) {
   if (typeof value !== 'string') {
@@ -333,9 +333,10 @@ async function handleSubmitEditLink(editFormRef: FormInstance | undefined) {
 
 async function handleClickDisplayTopology() {
   const clusterId = parseInt(route.query.clusterId as string, 10) || 0;
-  const svgContent = await api.loadClusterTopology(clusterId);
+  const svgBlob = await api.loadClusterTopology(clusterId);
+  const objectUrl = URL.createObjectURL(svgBlob);
+  topologyImageUrl.value = objectUrl;
   isTopologyVisible.value = true;
-  document.getElementById('topology-container')!.innerHTML = svgContent;
 }
 
 onMounted(async () => {
