@@ -115,7 +115,7 @@
     </el-form>
   </el-dialog>
 
-  <el-dialog v-model="isTopologyVisible" title="Cluster Topology">
+  <el-dialog v-model="isTopologyVisible" title="Cluster Topology" width="80%">
     <div id="topology-container" style="width: 100%; height: 80vh; overflow: auto;">
     </div>
   </el-dialog>
