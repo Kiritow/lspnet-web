@@ -334,8 +334,8 @@ async function handleSubmitEditLink(editFormRef: FormInstance | undefined) {
 async function handleClickDisplayTopology() {
   const clusterId = parseInt(route.query.clusterId as string, 10) || 0;
   const svgContent = await api.loadClusterTopology(clusterId);
-  document.getElementById('topology-container')!.innerHTML = svgContent;
   isTopologyVisible.value = true;
+  document.getElementById('topology-container')!.innerHTML = svgContent;
 }
 
 onMounted(async () => {
