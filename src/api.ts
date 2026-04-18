@@ -131,6 +131,20 @@ export async function updateLinkTemplate(
   return z.object({ message: z.string() }).parse(res)
 }
 
-export async function loadClusterTopology(clusterId: number) {
-  return await justGet('/api/admin/cluster/topology', { id: `${clusterId}` })
+export async function fetchClusterTopology(clusterId: number) {
+  const res = await justGet('/api/admin/cluster/topology', { id: `${clusterId}` });
+  return z.object({
+    nodes: z.object({
+      id: z.string(),
+      label: z.string(),
+      type: z.string(),
+      color: z.string().optional(),
+    }).array(),
+    edges: z.object({
+      source: z.string(),
+      target: z.string(),
+      label: z.string(),
+      color: z.string().optional(),
+    }).array(),
+  }).parse(res);
 }

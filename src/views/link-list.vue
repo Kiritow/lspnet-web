@@ -116,7 +116,7 @@
   </el-dialog>
 
   <el-dialog v-model="isTopologyVisible" title="Cluster Topology" width="80%">
-    <img :src="topologyImageUrl" alt="Cluster Topology" style="width: 100%; height: auto;">
+    <NetworkGraph :elements="topologyElements" />
   </el-dialog>
 
 </template>
@@ -124,22 +124,23 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import * as api from '@/api';
 import { ElMessage, ElNotification, type FormInstance } from 'element-plus';
-import { formatLocalTime } from '@/utils';
+import cytoscape from 'cytoscape';
 import { VAceEditor } from 'vue3-ace-editor';
 import "ace-builds/src-noconflict/mode-json";
 import "ace-builds/src-noconflict/theme-chrome";
 import extSearchboxUrl from 'ace-builds/src-noconflict/ext-searchbox?url';
 import ace from 'ace-builds';
 ace.config.setModuleUrl('ace/ext/searchbox', extSearchboxUrl);
+import * as api from '@/api';
+import { formatLocalTime } from '@/utils';
 
 const route = useRoute();
 const tableData = ref<api.LinkTemplateInfo[]>([]);
 const nodeInfoMap = ref<Map<number, api.NodeInfo>>(new Map());
 const isDialogVisible = ref(false);
 const nodeListDropdown = ref<api.NodeInfo[]>([]);
-const ruleFormRef = ref<FormInstance>()
+const ruleFormRef = ref<FormInstance>();
 
 interface FormType {
   fromNodeId: number;
@@ -183,9 +184,6 @@ const formRules = ref({
     { type: 'string', validator: validateIPorHost, message: 'Invalid IP or Host', trigger: 'blur' },
   ],
 });
-
-const isTopologyVisible = ref(false);
-const topologyImageUrl = ref('');
 
 function validateIPorHost(rule: unknown, value: unknown, callback: (err?: unknown) => void) {
   if (typeof value !== 'string') {
@@ -331,11 +329,25 @@ async function handleSubmitEditLink(editFormRef: FormInstance | undefined) {
   await loadClusterLinks();
 }
 
+const isTopologyVisible = ref(false);
+const topologyElements = ref<cytoscape.ElementDefinition[]>([]);
+
 async function handleClickDisplayTopology() {
   const clusterId = parseInt(route.query.clusterId as string, 10) || 0;
-  const svgBlob = await api.loadClusterTopology(clusterId);
-  const objectUrl = URL.createObjectURL(svgBlob);
-  topologyImageUrl.value = objectUrl;
+  const res = await api.fetchClusterTopology(clusterId);
+  const elements: cytoscape.ElementDefinition[] = [];
+  res.nodes.forEach(node => {
+    elements.push({
+      data: node,
+    });
+  });
+  res.edges.forEach(edge => {
+    elements.push({
+      data: edge,
+    });
+  });
+
+  topologyElements.value = elements;
   isTopologyVisible.value = true;
 }
 
