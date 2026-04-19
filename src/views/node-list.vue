@@ -14,6 +14,8 @@
       <el-table-column prop="id" label="Node ID" width="180"></el-table-column>
       <el-table-column prop="nodeName" label="Node Name" width="180"></el-table-column>
       <el-table-column prop="status" label="Status" width="180"></el-table-column>
+      <el-table-column prop="clientIP" label="Client IP" width="180"></el-table-column>
+      <el-table-column prop="clientVersion" label="Client Version" width="180"></el-table-column>
       <el-table-column label="Last Seen" width="180">
         <template #default="{ row }">
           {{ formatLocalTime(row.lastSeen) }}
@@ -57,7 +59,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import * as api from '@/api';
 import { ElMessage } from 'element-plus';
@@ -118,12 +120,20 @@ async function handleClickEditConfig(nodeId: number) {
       editDialogContent.value = JSON.stringify(config, null, 2);
     } catch (e) {
       // if failed, just show the raw config
-      console.log(`Failed to parse config: ${e}. Using raw config.`);
+      ElMessage({
+        message: 'Failed to parse config. Using raw config.',
+        type: 'warning',
+      });
+
       editDialogContent.value = nodeInfo.config;
     }
   } else {
     // show a default config
-    console.log('No config found. Using default config.');
+    ElMessage({
+      message: 'No config found. Using default config.',
+      type: 'info',
+    });
+
     editDialogContent.value = JSON.stringify({
       ip: '',
       external: false,

@@ -37,6 +37,8 @@ const nodeSchema = z.object({
   config: z.string(),
   status: z.number(),
   lastSeen: z.coerce.date(),
+  clientIP: z.string(),
+  clientVersion: z.string(),
   createTime: z.coerce.date(),
   updateTime: z.coerce.date(),
 })
